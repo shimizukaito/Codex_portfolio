@@ -1,0 +1,19 @@
+[
+  {
+    "title": "test",
+    "slug": "test",
+    "date": "2026.05",
+    "cover": "assets/imported/test-1.png",
+    "gallery": [
+      {
+        "src": "assets/imported/test-1.png",
+        "type": "image"
+      }
+    ],
+    "technologies": [
+      "P5js"
+    ],
+    "description": "tesuto",
+    "youtubeEmbeds": []
+  }
+]
