@@ -332,7 +332,7 @@ function sketchF(p) {
   let cols, rows;
 
   p.setup = function () {
-    p.createCanvas(sketchWidth(), sketchHeight() / 1.3).parent('sketch-root');
+    p.createCanvas(sketchWidth(), sketchHeight()).parent('sketch-root');
     col1 = p.color(135, 206, 250); // 青
     col2 = p.color(50, 50, 50);    // 黒
     blockSize = Math.floor(p.width / 25);
@@ -486,6 +486,17 @@ function sketchP5Editor(container) {
 }
 
 sketches.push({ kind: 'iframe', name: 'p5-editor', sketch: sketchP5Editor });
+
+function sketchP5EditorEyes(container) {
+  const frame = document.createElement('iframe');
+  frame.className = 'sketch-frame';
+  frame.title = 'p5 Editor eye tiles sketch';
+  frame.src = 'p5-editor-eyes/index.html';
+  frame.loading = 'eager';
+  container.append(frame);
+}
+
+sketches.push({ kind: 'iframe', name: 'p5-editor-eyes', sketch: sketchP5EditorEyes });
 
 
 

@@ -309,7 +309,7 @@ h3 {
 }
 
 .work-meta h3 {
-  font-size: clamp(13px, 1.25vw, 16px);
+  font-size: clamp(15px, 1.45vw, 20px);
   font-weight: 600;
   margin: 0;
 }
