@@ -147,7 +147,7 @@ function sketchA(p) {
   }
 }
 
-sketches.push(sketchA);
+sketches.push({ kind: 'p5', name: 'random-walk', sketch: sketchA });
 
 // --- スケッチ B（QRコード） ---
 function sketchB(p) {
@@ -320,242 +320,8 @@ function sketchB(p) {
     return unescape(encodeURIComponent(string));
   }
 }
-sketches.push(sketchB);
+sketches.push({ kind: 'p5', name: 'qr', sketch: sketchB });
 
-// --- スケッチ C ---
-// 必要に応じてさらに sketches.push(sketchC) …
-function sketchC(p) {
-  p.setup = function() {
-    p.createCanvas(sketchWidth(), sketchHeight()).parent('sketch-root');
-    p.noStroke();
-  };
-  p.draw = function() {
-    p.clear(); 
-    // 100 個のランダムな線を毎フレーム描いてみる例
-    for (let i = 0; i < 100; i++) {
-      p.stroke(p.random(100, 255), p.random(100, 255), p.random(100, 255), 100);
-      p.line(p.random(p.width), p.random(p.height), p.random(p.width), p.random(p.height));
-    }
-  };
-  p.windowResized = function() {
-    p.resizeCanvas(sketchWidth(), sketchHeight());
-  };
-}
-sketches.push(sketchC);
-
-/* --- スケッチ D: パズルタイル＆接続ライン --- */
-function sketchD(p) {
-  let tiles = [];
-  let cols = 10;
-  let rows = 10;
-  let w, h;
-  let board = [];
-  let isAnimating = false;
-  let stepTime = 10;
-  let connections = [];
-
-  p.setup = function() {
-    p.createCanvas(sketchWidth(), sketchHeight()).parent('sketch-root');
-    w = p.width / cols;
-    h = p.height / rows;
-
-    for (let i = 0; i < cols; i++) {
-      for (let j = 0; j < rows; j++) {
-        let x = i * w;
-        let y = j * h;
-        let index = i + j * cols;
-        board.push(index);
-        let tile = new PuzzleTile(index, x, y, p);
-        tiles.push(tile);
-      }
-    }
-
-    for (let j = 0; j < rows; j++) {
-      for (let i = 0; i < cols; i++) {
-        let index = i + j * cols;
-        if (i < cols - 1) {
-          let rightIndex = (i + 1) + j * cols;
-          connections.push([index, rightIndex]);
-        }
-        if (j < rows - 1) {
-          let downIndex = i + (j + 1) * cols;
-          connections.push([index, downIndex]);
-        }
-      }
-    }
-
-    tiles.pop();
-    board[0] = -1;
-    board[cols / 2 - 1] = -1;
-    board[board.length / 2] = -1;
-    board[board.length / 2 + cols - 1] = -1;
-    board[cols - 1] = -1;
-    board[board.length / 2 + cols / 2 - 1] = -1;
-    board[board.length - cols] = -1;
-    board[board.length - cols / 2 - 1] = -1;
-    board[board.length - 1] = -1;
-  };
-
-  p.draw = function() {
-    p.background(0);
-
-    for (let i = 0; i < cols; i++) {
-      for (let j = 0; j < rows; j++) {
-        let index = i + j * cols;
-        let tileIndex = board[index];
-        if (tileIndex > -1) {
-          let tile = tiles[tileIndex];
-          tile.update();
-          tile.show();
-        }
-      }
-    }
-
-    drawSmoothCurve();
-
-    if (!isAnimating) {
-      isAnimating = true;
-      setTimeout(() => {
-        randomNeighborMove();
-        isAnimating = false;
-      }, stepTime);
-    }
-  };
-
-  p.windowResized = function() {
-    p.resizeCanvas(sketchWidth(), sketchHeight());
-    w = p.width / cols;
-    h = p.height / rows;
-  };
-
-  function drawSmoothCurve() {
-    p.stroke(255, 0, 0);
-    p.strokeWeight(1);
-    p.noFill();
-
-    for (let pair of connections) {
-      let [idxA, idxB] = pair;
-      let posA = getCurrentTileCenterPos(idxA);
-      let posB = getCurrentTileCenterPos(idxB);
-
-      if (posA && posB) {
-        p.line(posA.x, posA.y, posB.x, posB.y);
-      }
-    }
-  }
-
-  function getCurrentTileCenterPos(initialIndex) {
-    let posInBoard = board.indexOf(initialIndex);
-    if (posInBoard == -1) return null;
-
-    let colI = posInBoard % cols;
-    let rowI = Math.floor(posInBoard / cols);
-    let tileIndex = board[posInBoard];
-    if (tileIndex > -1) {
-      let tile = tiles[tileIndex];
-      return {
-        x: tile.currentX + w / 2,
-        y: tile.currentY + h / 2
-      };
-    }
-    return null;
-  }
-
-  class PuzzleTile {
-    constructor(index, x, y, p5ref) {
-      this.p = p5ref;
-      this.index = index;
-      this.currentX = x;
-      this.currentY = y;
-      this.targetX = x;
-      this.targetY = y;
-    }
-
-    setTarget(x, y) {
-      this.targetX = x;
-      this.targetY = y;
-    }
-
-    update() {
-      this.currentX = this.p.lerp(this.currentX, this.targetX, 0.1);
-      this.currentY = this.p.lerp(this.currentY, this.targetY, 0.1);
-    }
-
-    show() {
-      // 中心点のみ表示
-      let centerX = this.currentX + w / 2;
-      let centerY = this.currentY + h / 2;
-      this.p.fill(255);
-      this.p.noStroke();
-      this.p.ellipse(centerX, centerY, 5, 5);
-    }
-  }
-
-  function randomNeighborMove() {
-    let blankIndices = findBlanks();
-    let moves = [];
-
-    for (let blankIndex of blankIndices) {
-      let blankCol = blankIndex % cols;
-      let blankRow = Math.floor(blankIndex / cols);
-
-      let neighbors = [];
-      if (blankCol > 0) neighbors.push([blankCol - 1, blankRow]);
-      if (blankCol < cols - 1) neighbors.push([blankCol + 1, blankRow]);
-      if (blankRow > 0) neighbors.push([blankCol, blankRow - 1]);
-      if (blankRow < rows - 1) neighbors.push([blankCol, blankRow + 1]);
-
-      if (neighbors.length > 0) {
-        moves.push(p.random(neighbors));
-      }
-    }
-
-    if (moves.length > 0) {
-      let [colI, rowI] = p.random(moves);
-      move(colI, rowI, board);
-    }
-  }
-
-  function move(i, j, arr) {
-    let blankIndices = findBlanks();
-
-    for (let blank of blankIndices) {
-      let blankCol = blank % cols;
-      let blankRow = Math.floor(blank / cols);
-
-      if (isNeighbor(i, j, blankCol, blankRow)) {
-        let tileIndex = board[i + j * cols];
-        let blankX = blankCol * w;
-        let blankY = blankRow * h;
-
-        if (tileIndex > -1) {
-          tiles[tileIndex].setTarget(blankX, blankY);
-        }
-        swap(blank, i + j * cols, arr);
-        break;
-      }
-    }
-  }
-
-  function isNeighbor(i, j, x, y) {
-    return (Math.abs(i - x) + Math.abs(j - y) === 1);
-  }
-
-  function findBlanks() {
-    let blanks = [];
-    for (let i = 0; i < board.length; i++) {
-      if (board[i] == -1) blanks.push(i);
-    }
-    return blanks;
-  }
-
-  function swap(i, j, arr) {
-    let temp = arr[i];
-    arr[i] = arr[j];
-    arr[j] = temp;
-  }
-}
-sketches.push(sketchD);
 
 /* --- スケッチ E: カラフルなボールのランダムウォーク --- */
 function sketchF(p) {
@@ -708,15 +474,37 @@ function sketchF(p) {
 }
 
 
-sketches.push(sketchF);
+sketches.push({ kind: 'p5', name: 'bouncing-balls', sketch: sketchF });
+
+function sketchP5Editor(container) {
+  const frame = document.createElement('iframe');
+  frame.className = 'sketch-frame';
+  frame.title = 'p5 Editor sketch';
+  frame.src = 'p5-editor/index.html';
+  frame.loading = 'eager';
+  container.append(frame);
+}
+
+sketches.push({ kind: 'iframe', name: 'p5-editor', sketch: sketchP5Editor });
 
 
 
 
 window.addEventListener('load', () => {
   const container = sketchContainer();
-  if (!container || !window.p5) return;
+  if (!container) return;
   container.innerHTML = '';
-  const idx = Math.floor(Math.random() * sketches.length);
-  new window.p5(sketches[idx]);
+  const params = new URLSearchParams(window.location.search);
+  const requested = params.get('sketch');
+  const selected =
+    sketches.find((sketch) => sketch.name === requested) ||
+    sketches[Math.floor(Math.random() * sketches.length)];
+
+  if (selected.kind === 'iframe') {
+    selected.sketch(container);
+    return;
+  }
+
+  if (!window.p5) return;
+  new window.p5(selected.sketch);
 });
